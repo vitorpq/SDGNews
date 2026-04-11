@@ -113,40 +113,96 @@ ls -la data/
 
 **Isso é tudo!** A imagem Docker vem pré-compilada do GHCR.
 
-### 1.4 Atualizar systemd timer para usar Docker
+### 1.4 Configurar Systemd Timer (Execução Automática 06h30)
+
+#### Criar arquivo `.service`
 
 ```bash
-# Editar o arquivo de service
+# Criar arquivo de service
 sudo nano /etc/systemd/system/mercado-brasil-daily.service
 ```
 
-Substituir:
+Cole isto:
 
 ```ini
+[Unit]
+Description=SDG Daily News — Digest financeiro diário
+After=network-online.target
+
 [Service]
 Type=oneshot
 User=vitor
 WorkingDirectory=/opt/SDGNews
-# ANTES:
-# ExecStart=/home/vitor/.venv/mercado_brasil/bin/python main.py
 
-# DEPOIS:
+# Puxa imagem nova do GHCR e executa
+ExecStart=/usr/bin/docker compose -f /opt/SDGNews/docker-compose.yml pull
 ExecStart=/usr/bin/docker compose -f /opt/SDGNews/docker-compose.yml run --rm app
 
 StandardOutput=journal
 StandardError=journal
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-Ativar:
+Salvar: `Ctrl+O`, Enter, `Ctrl+X`
+
+---
+
+#### Criar arquivo `.timer`
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable mercado-brasil-daily.timer
-sudo systemctl restart mercado-brasil-daily.timer
+# Criar arquivo de timer
+sudo nano /etc/systemd/system/mercado-brasil-daily.timer
+```
 
-# Verificar
+Cole isto:
+
+```ini
+[Unit]
+Description=Timer — SDG Daily News (06h30 seg-sex)
+Requires=mercado-brasil-daily.service
+
+[Timer]
+OnCalendar=Mon-Fri 06:30:00
+Persistent=true
+Accuracy=1s
+
+[Install]
+WantedBy=timers.target
+```
+
+Salvar: `Ctrl+O`, Enter, `Ctrl+X`
+
+---
+
+#### Ativar o Timer
+
+```bash
+# Recarregar systemd (detecta novos arquivos)
+sudo systemctl daemon-reload
+
+# Ativar timer para iniciar no boot
+sudo systemctl enable mercado-brasil-daily.timer
+
+# Iniciar o timer AGORA
+sudo systemctl start mercado-brasil-daily.timer
+
+# Verificar status
 sudo systemctl status mercado-brasil-daily.timer
-journalctl -u mercado-brasil-daily -f  # seguir logs
+
+# Ver próximas execuções
+sudo systemctl list-timers mercado-brasil-daily.timer
+
+# Acompanhar logs em tempo real
+sudo journalctl -u mercado-brasil-daily.service -f
+```
+
+**Nota:** Se quiser testar execução agora (sem esperar 06h30):
+```bash
+sudo systemctl start mercado-brasil-daily.service
 ```
 
 ---
