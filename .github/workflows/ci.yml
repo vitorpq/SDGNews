@@ -67,7 +67,7 @@ jobs:
   test-dry-run:
     name: Test dry-run
     runs-on: ubuntu-latest
-    needs: docker-build
+    needs: docker-build-push
 
     steps:
       - name: Checkout code
