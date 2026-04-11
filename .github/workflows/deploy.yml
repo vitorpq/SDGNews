@@ -1,0 +1,74 @@
+name: Deploy — SSH to Beelink
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy to Beelink VPS
+    runs-on: ubuntu-latest
+    # Apenas rodar após CI passar
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.BEELINK_HOST }}
+          username: ${{ secrets.BEELINK_USER }}
+          key: ${{ secrets.BEELINK_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "[*] Deploy iniciado em $(date)"
+
+            # Navegar para o diretório da aplicação
+            cd /home/vitor/NewsSentiment || { echo "Diretório não encontrado"; exit 1; }
+
+            # Atualizar código do repositório
+            echo "[*] Atualizando código..."
+            git fetch origin
+            git reset --hard origin/main
+
+            # Verificar se Docker está rodando
+            if ! docker ps &>/dev/null; then
+              echo "[✗] Docker não está acessível. Verifique permissões do usuário vitor."
+              exit 1
+            fi
+
+            # Build da imagem Docker
+            echo "[*] Buildando imagem Docker..."
+            docker compose build --no-cache
+
+            # Verificar sucesso do build
+            if [ $? -eq 0 ]; then
+              echo "[✓] Build bem-sucedido!"
+            else
+              echo "[✗] Build falhou!"
+              exit 1
+            fi
+
+            # Limpar imagens antigos (opcional)
+            echo "[*] Limpando imagens dangling..."
+            docker image prune -f --filter "dangling=true" || true
+
+            echo "[✓] Deploy concluído em $(date)"
+            echo "[*] Próxima execução: 06h30 (agendado via systemd timer)"
+
+        env:
+          CI: true
+
+      - name: Notify on failure
+        if: failure()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.BEELINK_HOST }}
+          username: ${{ secrets.BEELINK_USER }}
+          key: ${{ secrets.BEELINK_SSH_KEY }}
+          script: |
+            echo "[✗] Deploy falhou! Verifique os logs em:"
+            echo "    https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

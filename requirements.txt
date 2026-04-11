@@ -1,0 +1,8 @@
+agno
+openai
+yfinance
+tavily-python
+requests
+python-telegram-bot
+python-dotenv
+pydantic

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mercado-brasil-daily
+
+    # Volumes para persistência de dados
+    volumes:
+      - ./data:/app/data  # Persiste outputs, SQLite, ChromaDB
+
+    # Variáveis de ambiente carregadas do .env local
+    env_file:
+      - .env
+
+    # Não reiniciar automaticamente (run once)
+    restart: "no"
+
+    # Timeout e limites de recursos
+    stop_grace_period: 30s
+
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Limites de CPU e memória (opcional, descomente se necessário)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 4G
+    #     reservations:
+    #       cpus: '1.0'
+    #       memory: 2G
+
+# Networks (opcional)
+networks:
+  default:
+    name: mercado-brasil-daily-net
+    driver: bridge
