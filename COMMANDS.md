@@ -103,11 +103,18 @@ ls -lah data/outputs/         # digests gerados
 sqlite3 data/sqlite/digests.db ".tables"  # verificar banco
 ```
 
-### Atualizar repositório manualmente
+### Atualizar imagem do GHCR manualmente
 ```bash
 cd /opt/SDGNews
-git pull origin main
-docker compose build --no-cache
+
+# Fazer login no GHCR (se não tiver feito)
+docker login ghcr.io
+
+# Puxar imagem nova
+docker compose pull
+
+# Verificar imagem baixada
+docker images | grep ghcr.io
 ```
 
 ### Verificar uso de disco (Docker)

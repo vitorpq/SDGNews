@@ -11,23 +11,30 @@ GitHub Push (main branch)
          ↓
   [GitHub Actions - CI]
     ├── Lint (ruff)
-    ├── Docker build
-    └── dry-run test
+    ├── Build Docker image
+    ├── Push para GHCR
+    └── Dry-run test
          ↓ (se passar)
   [GitHub Actions - Deploy]
-    ├── SSH na VPS Hostinger (AlmaLinux)
-    ├── git pull origin main
-    └── docker compose build --no-cache
+    ├── SSH na VPS Hostinger
+    └── docker compose pull (pega imagem nova do GHCR)
          ↓
   [VPS Hostinger - systemd timer]
     └── 06h30 todos os dias úteis
          ↓
-  [Container Docker]
+  [Container Docker] (imagem pré-compilada)
     └── python main.py (run once)
          ↓
   [Telegram + SQLite + .md]
     └── Digest entregue
 ```
+
+**Diferença do fluxo anterior:**
+- ❌ Não precisa clonar repositório na VPS
+- ❌ Não precisa de Dockerfile na VPS
+- ❌ Não precisa de código Python na VPS
+- ✅ Imagem pré-compilada vem do GHCR
+- ✅ Setup é 30 segundos: mkdir + docker-compose.yml + .env
 
 ## 1. Preparar a VPS (Hostinger - AlmaLinux)
 
@@ -81,28 +88,30 @@ cat ~/.ssh/github_deploy
 > - Porta SSH (default 22, pode estar customizada)
 > - IP público da VPS (vem no email de ativação)
 
-### 1.3 Clonar repositório na VPS Hostinger
+### 1.3 Setup da VPS Hostinger (Muito Simples!)
+
+Diferente do fluxo antigo, **você não precisa clonar o repositório**. Só de um `docker-compose.yml`:
 
 ```bash
-# Na VPS Hostinger — criar diretório em /opt e dar permissões
-sudo mkdir -p /opt/SDGNews
-sudo chown vitor:vitor /opt/SDGNews
-sudo chmod 755 /opt/SDGNews
+# Na VPS Hostinger — criar diretórios
+sudo mkdir -p /opt/SDGNews/{data/{outputs,sqlite}}
+sudo chown -R vitor:vitor /opt/SDGNews
 
-# Clonar repositório (instalar git se não tiver)
-sudo dnf install -y git
-cd /opt
-git clone https://github.com/vitorpq/SDGNews.git
 cd /opt/SDGNews
 
-# Criar arquivo .env com as secrets reais
+# Baixar docker-compose.yml do repositório
+curl -o docker-compose.yml https://raw.githubusercontent.com/vitorpq/SDGNews/main/docker-compose.yml
+
+# Baixar .env.example e adaptar
+curl -o .env.example https://raw.githubusercontent.com/vitorpq/SDGNews/main/.env.example
 cp .env.example .env
 nano .env  # preencher: OPENROUTER_API_KEY, TAVILY_API_KEY, TELEGRAM_BOT_TOKEN, etc
 
-# Testar permissão de volume
-mkdir -p data/{outputs,sqlite}
-docker compose run --rm app echo "✓ Volumes OK"
+# Verificar permissão de volumes
+ls -la data/
 ```
+
+**Isso é tudo!** A imagem Docker vem pré-compilada do GHCR.
 
 ### 1.4 Atualizar systemd timer para usar Docker
 
@@ -151,28 +160,45 @@ No repositório GitHub:
 
 | Nome | Valor |
 |------|-------|
-| `BEELINK_HOST` | IP ou hostname do Beelink (ex: `123.45.67.89` ou `seu-beelink.com`) |
-| `BEELINK_USER` | `vitor` |
-| `BEELINK_SSH_KEY` | Conteúdo completo de `~/.ssh/github_deploy` (chave PRIVADA do Beelink) |
+| `BEELINK_HOST` | IP ou hostname da VPS Hostinger (ex: `123.45.67.89`) |
+| `BEELINK_USER` | `vitor` (seu usuário SSH) |
+| `BEELINK_SSH_KEY` | Conteúdo completo de `~/.ssh/github_deploy` (chave PRIVADA) |
 
-⚠️ **IMPORTANTE:** A chave privada é sensível — nunca coloque em .env ou commit!
+**Notas:**
+- ⚠️ Chave privada é sensível — nunca coloque em .env ou commit!
+- `GITHUB_TOKEN` é automático (GitHub fornece no workflow, não precisa configurar)
+- O token é usado para autenticar no GHCR (GitHub Container Registry)
 
 ---
 
-## 3. Arquivos de Docker e CI/CD
+## 3. Fluxo de CI/CD com GHCR
 
-### Dockerfile
-- Base: `python:3.11-slim` (leve, ~140MB)
-- Instala dependências via `requirements.txt`
-- Roda como usuário não-root (`appuser`)
-- CMD: `python main.py`
+### .github/workflows/ci.yml (Build + Push)
+1. **Lint** — ruff valida código
+2. **Build Docker** — constrói imagem
+3. **Push para GHCR** — `ghcr.io/vitorpq/SDGNews:latest`
+   - Usa `GITHUB_TOKEN` (automático)
+   - Imagem fica privada (acesso via token)
 
-### docker-compose.yml
-- Volume: `./data` → `/app/data` (persiste outputs, SQLite)
-- env_file: `.env` (secrets carregadas localmente)
-- restart: `"no"` (run once, sem daemon)
+### .github/workflows/deploy.yml (Pull + Run)
+1. **SSH na VPS** — conecta via chave privada
+2. **Docker login GHCR** — autentica usando `GITHUB_TOKEN`
+3. **docker compose pull** — baixa imagem nova
+4. **Cleanup** — remove imagens dangling
 
-### .github/workflows/ci.yml
+### docker-compose.yml (Na VPS)
+```yaml
+services:
+  app:
+    image: ghcr.io/vitorpq/SDGNews:latest  # Imagem pré-compilada
+    pull_policy: always                     # Sempre verifica atualizações
+    volumes:
+      - ./data:/app/data                    # Persiste saídas
+    env_file: .env                          # Secrets locais
+    restart: "no"                           # Run once (não daemon)
+```
+
+**Nota:** Não precisa de Dockerfile na VPS! A imagem já vem pronta.
 Roda em **cada push e PR** em `main` ou `develop`:
 1. **Lint** — `ruff check` para qualidade de código
 2. **Build** — Constrói imagem Docker sem push
@@ -192,31 +218,39 @@ Roda **apenas em push para `main`** (após CI passar):
 ### Exemplo: Você faz um push em main
 
 ```
-[1] GitHub Actions — CI inicia
-    ├── Lint (ruff)
-    ├── Docker build
-    └── dry-run test
+[1] GitHub Actions — CI inicia (automático)
+    ├── Lint com ruff
+    ├── Build Docker image
+    ├── Push para GHCR (ghcr.io/vitorpq/SDGNews:latest)
+    └── Teste dry-run
     
 [2] Tudo passa → Deploy inicia
-    ├── SSH connect ao Beelink
-    ├── git pull origin main
-    └── docker compose build --no-cache
+    ├── SSH conecta à VPS Hostinger
+    ├── Autentica no GHCR (docker login)
+    └── docker compose pull (baixa image nova)
     
-[3] Beelink — aguarda timer
-    └── 06h30 → systemd dispara: docker compose run --rm app
+[3] VPS Hostinger — aguarda timer systemd
+    └── 06h30 (seg-sex) → systemd dispara: docker compose run --rm app
     
-[4] Container inicia
+[4] Container inicia (imagem pré-compilada do GHCR)
     ├── Coleta dados (yfinance)
     ├── Curador verifica notícias
     └── Redator gera digest
     
 [5] Container termina
-    ├── Arquivo .md salvo em data/outputs/
+    ├── Arquivo .md salvo em ./data/outputs/
     ├── Digest enviado via Telegram
     └── Metadados no SQLite
     
-[6] Próxima execução: amanhã 06h30
+[6] Próxima execução: amanhã 06h30 (automaticamente)
+    (VPS usa a image já baixada, sem reconectar ao GHCR)
 ```
+
+**Vantagens:**
+- ✅ Cada push constrói **1 vez** no GitHub (máquina poderosa)
+- ✅ VPS só **puxa** imagem (rápido, ~30s)
+- ✅ Sem código-fonte na VPS (segurança)
+- ✅ Sem Dockerfile na VPS
 
 ---
 
@@ -252,6 +286,43 @@ docker compose version
 # Se não estiver, reinstalar (AlmaLinux)
 sudo dnf install -y docker-compose-plugin
 sudo systemctl restart docker
+```
+
+### "Error response from daemon: unauthorized: authentication required" (GHCR)
+
+Significa que o Docker não conseguiu autenticar no GHCR. Solução:
+
+```bash
+# Fazer login manual no GHCR (use seu GitHub token)
+docker login ghcr.io
+
+# Username: seu_usuario_github
+# Password: seu_github_token (Personal Access Token com acesso a packages)
+
+# Testar pull
+docker compose pull
+
+# Se ainda não funcionar, logout e reconectar
+docker logout ghcr.io
+docker login ghcr.io
+```
+
+**Nota:** O workflow do GitHub usa `secrets.GITHUB_TOKEN` automaticamente, mas na VPS você pode precisar fazer login manualmente uma vez.
+
+### "image not found" no docker compose pull
+
+Significa que o workflow ainda não completou o push. Verifique:
+
+```bash
+# No GitHub Actions
+1. Ir em Actions → workflow → logs
+2. Procurar por "Build and push Docker image" — deve ter sucesso
+3. Tag deve ser: ghcr.io/vitorpq/SDGNews:latest (ou seu username)
+
+# Na VPS, validar imagem disponível
+docker images | grep ghcr.io
+
+# Se não aparecer, executar push manualmente (via GitHub Actions)
 ```
 
 ### "SELinux permission denied" (AlmaLinux/Hostinger)

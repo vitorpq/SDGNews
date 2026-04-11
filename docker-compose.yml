@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: mercado-brasil-daily
+    # Puxa imagem pré-construída do GitHub Container Registry
+    image: ghcr.io/vitorpq/SDGNews:latest
+    container_name: sdg-daily-news
+    pull_policy: always  # Sempre verifica se há versão nova
 
     # Volumes para persistência de dados
     volumes:
@@ -41,5 +41,5 @@ services:
 # Networks (opcional)
 networks:
   default:
-    name: mercado-brasil-daily-net
+    name: sdg-daily-news-net
     driver: bridge
