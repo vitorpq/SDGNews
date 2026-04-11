@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     # Puxa imagem pré-construída do GitHub Container Registry

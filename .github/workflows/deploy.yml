@@ -1,15 +1,17 @@
 name: Deploy — SSH to Beelink
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI — Lint + Build" ]
     branches: [ main ]
+    types: [ completed ]
 
 jobs:
   deploy:
     name: Deploy to Beelink VPS
     runs-on: ubuntu-latest
-    # Apenas rodar após CI passar
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Apenas rodar se CI passou com sucesso
+    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout code
