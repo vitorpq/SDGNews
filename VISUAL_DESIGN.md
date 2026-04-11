@@ -102,7 +102,7 @@ No Telegram, isso fica como uma linha contínua que ajuda a separar blocos visua
 ## Exemplo Real de Output
 
 ```
-🇧🇷 MERCADO BRASIL DAILY
+🇧🇷 SDG DAILY NEWS
 Sexta, 10 de abril de 2026
 
 📊 FECHAMENTO DO DIA

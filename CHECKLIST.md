@@ -88,7 +88,7 @@ Substituir:
 ExecStart=/home/vitor/.venv/mercado_brasil/bin/python main.py
 
 # DEPOIS:
-ExecStart=/usr/bin/docker compose -f /home/vitor/NewsSentiment/docker-compose.yml run --rm app
+ExecStart=/usr/bin/docker compose -f /opt/SDGNews/docker-compose.yml run --rm app
 ```
 
 ### 4.2 Recarregar e ativar
@@ -104,7 +104,7 @@ sudo systemctl status mercado-brasil-daily.timer
 
 ### 5.1 Testar execução manual no Beelink
 ```bash
-cd /home/vitor/NewsSentiment
+cd /opt/SDGNews
 docker compose run --rm app
 ```
 Verificar:
@@ -200,7 +200,7 @@ GitHub Actions
         ↓
 
 Beelink VPS
-├── /home/vitor/NewsSentiment/
+├── /opt/SDGNews/
 │   ├── .env (secrets)
 │   ├── data/ (volumes persistidos)
 │   └── docker-compose.yml

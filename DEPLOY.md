@@ -65,10 +65,15 @@ cat ~/.ssh/github_deploy
 ### 1.3 Clonar repositório no Beelink
 
 ```bash
-# No Beelink
-cd /home/vitor
-git clone https://github.com/seu-usuario/NewsSentiment.git
-cd NewsSentiment
+# No Beelink — criar diretório em /opt e dar permissões
+sudo mkdir -p /opt/SDGNews
+sudo chown vitor:vitor /opt/SDGNews
+sudo chmod 755 /opt/SDGNews
+
+# Clonar repositório
+cd /opt
+git clone https://github.com/vitorpq/SDGNews.git
+cd /opt/SDGNews
 
 # Criar arquivo .env com as secrets reais
 cp .env.example .env
@@ -92,12 +97,12 @@ Substituir:
 [Service]
 Type=oneshot
 User=vitor
-WorkingDirectory=/home/vitor/NewsSentiment
+WorkingDirectory=/opt/SDGNews
 # ANTES:
 # ExecStart=/home/vitor/.venv/mercado_brasil/bin/python main.py
 
 # DEPOIS:
-ExecStart=/usr/bin/docker compose -f /home/vitor/NewsSentiment/docker-compose.yml run --rm app
+ExecStart=/usr/bin/docker compose -f /opt/SDGNews/docker-compose.yml run --rm app
 
 StandardOutput=journal
 StandardError=journal
@@ -233,7 +238,7 @@ Verificar:
 1. Logs em: **Actions** → workflow → job → logs
 2. SSH key está correta? (copiar com `cat`, sem extra linhas)
 3. Beelink está online e acessível?
-4. Pasta `/home/vitor/NewsSentiment/` existe?
+4. Pasta `/opt/SDGNews/` existe?
 
 ---
 
@@ -301,7 +306,7 @@ Se um deploy quebrou:
 
 ```bash
 # No Beelink, reverter para commit anterior
-cd /home/vitor/NewsSentiment
+cd /opt/SDGNews
 git log --oneline -n 5
 git reset --hard <hash_anterior>
 

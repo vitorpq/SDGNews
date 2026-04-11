@@ -52,7 +52,7 @@ def _gerar_dashboard_telegram(dados_mercado: dict, data_referencia: str) -> str:
     data_formatada = f"{dia_semana.capitalize()}, {dt.day} de {_mes_nome(dt.month)} de {dt.year}"
 
     # Cabeçalho
-    html = f"🇧🇷 <b>MERCADO BRASIL DAILY</b>\n"
+    html = f"🇧🇷 <b>SDG DAILY NEWS</b>\n"
     html += f"<i>{data_formatada}</i>\n\n"
     html += "📊 <b>FECHAMENTO DO DIA</b>\n\n"
 
@@ -105,7 +105,7 @@ def _gerar_dashboard_md(dados_mercado: dict, data_referencia: str) -> str:
     data_formatada = f"{dia_semana.capitalize()}, {dt.day} de {_mes_nome(dt.month)} de {dt.year}"
 
     # Cabeçalho
-    md = f"# 🇧🇷 MERCADO BRASIL DAILY\n"
+    md = f"# 🇧🇷 SDG DAILY NEWS\n"
     md += f"**{data_formatada}**\n\n"
     md += "## 📊 FECHAMENTO DO DIA\n\n"
 

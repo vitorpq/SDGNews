@@ -70,7 +70,7 @@ docker compose up --build
 ### SSH no Beelink
 ```bash
 ssh vitor@seu_ip_beelink
-cd /home/vitor/NewsSentiment
+cd /opt/SDGNews
 ```
 
 ### Verificar status do timer
@@ -90,7 +90,7 @@ sudo journalctl -u mercado-brasil-daily.service -f
 
 ### Forçar execução imediata do timer
 ```bash
-cd /home/vitor/NewsSentiment
+cd /opt/SDGNews
 docker compose run --rm app
 ```
 
@@ -102,7 +102,7 @@ sqlite3 data/sqlite/digests.db ".tables"  # verificar banco
 
 ### Atualizar repositório manualmente
 ```bash
-cd /home/vitor/NewsSentiment
+cd /opt/SDGNews
 git pull origin main
 docker compose build --no-cache
 ```

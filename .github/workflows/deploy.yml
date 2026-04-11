@@ -27,7 +27,7 @@ jobs:
             echo "[*] Deploy iniciado em $(date)"
 
             # Navegar para o diretório da aplicação
-            cd /home/vitor/NewsSentiment || { echo "Diretório não encontrado"; exit 1; }
+            cd /opt/SDGNews || { echo "Diretório não encontrado"; exit 1; }
 
             # Atualizar código do repositório
             echo "[*] Atualizando código..."

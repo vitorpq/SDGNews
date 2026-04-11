@@ -151,7 +151,7 @@ sudo nano /etc/systemd/system/mercado-brasil-daily.service
 ```
 
 Alterar:
-- `WorkingDirectory=/home/vitor/NewsSentiment` → seu path real
+- `WorkingDirectory=/opt/SDGNews` → seu path real
 - `ExecStart=...python main.py` → seu python real (use `which python` para verificar)
 - `User=vitor` → seu usuário
 
