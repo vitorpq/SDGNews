@@ -65,12 +65,15 @@ docker compose up --build
 
 ---
 
-## Beelink — Manutenção
+## VPS Hostinger (AlmaLinux) — Manutenção
 
-### SSH no Beelink
+### SSH na VPS Hostinger
 ```bash
-ssh vitor@seu_ip_beelink
+ssh vitor@seu_ip_vps
 cd /opt/SDGNews
+
+# Verificar versão do AlmaLinux
+cat /etc/os-release
 ```
 
 ### Verificar status do timer
@@ -130,13 +133,87 @@ python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml'))"
 2. Clicar em um run
 3. **Re-run all jobs** ou **Re-run failed jobs**
 
-### Debug de SSH no Beelink (via GitHub Actions)
+### Debug de SSH na VPS Hostinger (via GitHub Actions)
 ```bash
 # Ativar debug mode (no arquivo workflow)
 # adicionar: env: { ACTIONS_STEP_DEBUG: true }
 
 # Ou testar SSH localmente:
-ssh -i ~/.ssh/github_deploy vitor@seu_ip_beelink "echo OK"
+ssh -i ~/.ssh/github_deploy vitor@seu_ip_vps "echo OK"
+```
+
+---
+
+## AlmaLinux (Hostinger) — Comandos Específicos
+
+### Gerenciador de Pacotes (DNF)
+```bash
+# Verificar atualizações
+sudo dnf check-update
+
+# Instalar pacotes
+sudo dnf install -y package_name
+
+# Remover pacotes
+sudo dnf remove -y package_name
+
+# Limpar cache
+sudo dnf clean all
+```
+
+### Firewall (FirewallD)
+```bash
+# Status do firewall
+sudo firewall-cmd --state
+
+# Permitir porta SSH (default 22)
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --permanent --add-port=22/tcp
+
+# Permitir porta customizada (ex: 2222)
+sudo firewall-cmd --permanent --add-port=2222/tcp
+
+# Recarregar firewall
+sudo firewall-cmd --reload
+
+# Ver portas abertas
+sudo firewall-cmd --list-all
+```
+
+### SELinux
+```bash
+# Ver status do SELinux
+getenforce
+
+# Ver modo do SELinux
+sestatus
+
+# Modo permissivo (log sem bloquear)
+sudo setenforce 0
+
+# Modo enforcing (ativa proteção)
+sudo setenforce 1
+
+# Ver logs de SELinux
+sudo tail -f /var/log/audit/audit.log | grep denied
+```
+
+### Systemd (igual ao Ubuntu, incluído para referência)
+```bash
+# Reload daemon
+sudo systemctl daemon-reload
+
+# Ativar serviço no boot
+sudo systemctl enable mercado-brasil-daily.timer
+
+# Ver próximas execuções
+sudo systemctl list-timers mercado-brasil-daily.timer
+
+# Forçar execução
+sudo systemctl start mercado-brasil-daily.service
+
+# Ver logs
+sudo journalctl -u mercado-brasil-daily.service -f
 ```
 
 ---

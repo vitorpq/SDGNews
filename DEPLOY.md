@@ -1,6 +1,8 @@
-# Deploy — Docker + GitHub Actions
+# Deploy — Docker + GitHub Actions (Hostinger - AlmaLinux)
 
-Guia completo para configurar CI/CD automatizado com Docker e deploy no Beelink.
+Guia completo para configurar CI/CD automatizado com Docker e deploy em VPS Hostinger com AlmaLinux.
+
+> **Nota**: Este guia foi customizado para **Hostinger + AlmaLinux**. Se usar uma distribuição diferente (Ubuntu, Debian, CentOS), alguns comandos podem variar. Os comandos principais (`docker compose`, `systemctl`) são os mesmos em qualquer Linux.
 
 ## Arquitetura
 
@@ -13,11 +15,11 @@ GitHub Push (main branch)
     └── dry-run test
          ↓ (se passar)
   [GitHub Actions - Deploy]
-    ├── SSH no Beelink
+    ├── SSH na VPS Hostinger (AlmaLinux)
     ├── git pull origin main
     └── docker compose build --no-cache
          ↓
-  [Beelink - systemd timer]
+  [VPS Hostinger - systemd timer]
     └── 06h30 todos os dias úteis
          ↓
   [Container Docker]
@@ -27,17 +29,29 @@ GitHub Push (main branch)
     └── Digest entregue
 ```
 
-## 1. Preparar o Beelink
+## 1. Preparar a VPS (Hostinger - AlmaLinux)
 
 ### 1.1 Instalar Docker e Docker Compose
 
 ```bash
-# SSH no Beelink
-ssh vitor@seu_ip_beelink
+# SSH na VPS Hostinger
+ssh vitor@seu_ip_vps
 
-# Instalar Docker (Ubuntu/Debian)
-sudo apt-get update
-sudo apt-get install -y docker.io docker-compose
+# Atualizar sistema (AlmaLinux/RHEL)
+sudo dnf update -y
+
+# Instalar dependências
+sudo dnf install -y dnf-plugins-core
+
+# Adicionar repositório Docker (oficial)
+sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+
+# Instalar Docker e Docker Compose (AlmaLinux)
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Iniciar Docker
+sudo systemctl start docker
+sudo systemctl enable docker
 
 # Adicionar vitor ao grupo docker (sem sudo)
 sudo usermod -aG docker vitor
@@ -51,7 +65,7 @@ docker compose version
 ### 1.2 Gerar chave SSH para deploy automático
 
 ```bash
-# No Beelink, criar chave SSH exclusiva para deploy (SEM passphrase)
+# Na VPS Hostinger, criar chave SSH exclusiva para deploy (SEM passphrase)
 ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N ""
 
 # Copiar a chave pública para authorized_keys
@@ -62,15 +76,21 @@ chmod 600 ~/.ssh/authorized_keys
 cat ~/.ssh/github_deploy
 ```
 
-### 1.3 Clonar repositório no Beelink
+> **Nota sobre Hostinger**: Se você estiver usando painel de controle Hostinger, verifique:
+> - SSH está ativado (geralmente vem ativado)
+> - Porta SSH (default 22, pode estar customizada)
+> - IP público da VPS (vem no email de ativação)
+
+### 1.3 Clonar repositório na VPS Hostinger
 
 ```bash
-# No Beelink — criar diretório em /opt e dar permissões
+# Na VPS Hostinger — criar diretório em /opt e dar permissões
 sudo mkdir -p /opt/SDGNews
 sudo chown vitor:vitor /opt/SDGNews
 sudo chmod 755 /opt/SDGNews
 
-# Clonar repositório
+# Clonar repositório (instalar git se não tiver)
+sudo dnf install -y git
 cd /opt
 git clone https://github.com/vitorpq/SDGNews.git
 cd /opt/SDGNews
@@ -229,22 +249,44 @@ ssh -i ~/.ssh/github_deploy localhost "echo OK"
 # Verificar instalação
 docker compose version
 
-# Se não estiver, reinstalar
-sudo apt-get install -y docker-compose
+# Se não estiver, reinstalar (AlmaLinux)
+sudo dnf install -y docker-compose-plugin
+sudo systemctl restart docker
+```
+
+### "SELinux permission denied" (AlmaLinux/Hostinger)
+
+AlmaLinux usa SELinux por padrão. Se vir erros de permissão ao rodar Docker:
+
+```bash
+# Opção 1: Desabilitar SELinux (simples, menos seguro)
+sudo semanage permissive -a container_t
+sudo semanage permissive -a docker_t
+
+# Opção 2: Mudar modo SELinux para permissive
+sudo setenforce 0
+# Para tornar permanente, editar /etc/selinux/config e mudar SELINUX=permissive
+```
+
+Depois reiniciar Docker:
+
+```bash
+sudo systemctl restart docker
 ```
 
 ### Deploy falhou no GitHub Actions
 Verificar:
 1. Logs em: **Actions** → workflow → job → logs
 2. SSH key está correta? (copiar com `cat`, sem extra linhas)
-3. Beelink está online e acessível?
+3. VPS Hostinger está online e acessível?
 4. Pasta `/opt/SDGNews/` existe?
+5. Porta SSH está aberta no firewall da Hostinger (painel → Segurança → Firewall)
 
 ---
 
 ## 6. Monitorar Execução
 
-### No Beelink, verificar logs do timer
+### Na VPS Hostinger, verificar logs do timer
 
 ```bash
 # Últimas execuções do timer
