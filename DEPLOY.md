@@ -176,7 +176,7 @@ No repositório GitHub:
 ### .github/workflows/ci.yml (Build + Push)
 1. **Lint** — ruff valida código
 2. **Build Docker** — constrói imagem
-3. **Push para GHCR** — `ghcr.io/vitorpq/SDGNews:latest`
+3. **Push para GHCR** — `ghcr.io/vitorpq/sdgnews:latest`
    - Usa `GITHUB_TOKEN` (automático)
    - Imagem fica privada (acesso via token)
 
@@ -190,7 +190,7 @@ No repositório GitHub:
 ```yaml
 services:
   app:
-    image: ghcr.io/vitorpq/SDGNews:latest  # Imagem pré-compilada
+    image: ghcr.io/vitorpq/sdgnews:latest  # Imagem pré-compilada
     pull_policy: always                     # Sempre verifica atualizações
     volumes:
       - ./data:/app/data                    # Persiste saídas
@@ -221,7 +221,7 @@ Roda **apenas em push para `main`** (após CI passar):
 [1] GitHub Actions — CI inicia (automático)
     ├── Lint com ruff
     ├── Build Docker image
-    ├── Push para GHCR (ghcr.io/vitorpq/SDGNews:latest)
+    ├── Push para GHCR (ghcr.io/vitorpq/sdgnews:latest)
     └── Teste dry-run
     
 [2] Tudo passa → Deploy inicia
@@ -317,7 +317,7 @@ Significa que o workflow ainda não completou o push. Verifique:
 # No GitHub Actions
 1. Ir em Actions → workflow → logs
 2. Procurar por "Build and push Docker image" — deve ter sucesso
-3. Tag deve ser: ghcr.io/vitorpq/SDGNews:latest (ou seu username)
+3. Tag deve ser: ghcr.io/vitorpq/sdgnews:latest (ou seu username)
 
 # Na VPS, validar imagem disponível
 docker images | grep ghcr.io
